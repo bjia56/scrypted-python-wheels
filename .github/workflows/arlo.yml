@@ -81,7 +81,7 @@ jobs:
 
       - name: Load image
         run: |
-          docker system prune -a
+          docker system prune -af
           docker load --input /tmp/stage1.tar
           rm /tmp/stage1.tar
           docker image ls -a
@@ -90,6 +90,8 @@ jobs:
         run: |
           docker image tag stage1:latest localhost:5000/stage1:latest
           docker image push localhost:5000/stage1:latest
+          docker system prune -af
+          docker image ls -a
 
       - name: Build Docker image (stage 2)
         uses: docker/build-push-action@v3

@@ -53,6 +53,15 @@ jobs:
           - 5000:5000
 
     steps:
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 6000
+          swap-size-mb: 50000
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+
       - name: Checkout repository
         uses: actions/checkout@v3
 
@@ -111,6 +120,15 @@ jobs:
           - 5000:5000
 
     steps:
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 6000
+          swap-size-mb: 50000
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+
       - name: Checkout repository
         uses: actions/checkout@v3
 
@@ -169,6 +187,15 @@ jobs:
           - 5000:5000
 
     steps:
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 6000
+          swap-size-mb: 50000
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+
       - name: Checkout repository
         uses: actions/checkout@v3
 
@@ -227,6 +254,15 @@ jobs:
           - 5000:5000
 
     steps:
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 6000
+          swap-size-mb: 50000
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+
       - name: Checkout repository
         uses: actions/checkout@v3
 

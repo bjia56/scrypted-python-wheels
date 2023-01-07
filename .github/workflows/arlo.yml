@@ -1,0 +1,274 @@
+name: Build @scrypted/arlo dependencies
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+  pull_request:
+
+jobs:
+  stage1:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Docker image (stage 1)
+        uses: docker/build-push-action@v3
+        with:
+          context: ./arlo
+          file: ./arlo/Dockerfile.stage1
+          push: false
+          platforms: linux/armhf
+          tags: stage1:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=min
+          outputs: type=docker,dest=/tmp/stage1.tar
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: stage1
+          path: /tmp/stage1.tar
+
+  stage2:
+    needs: stage1
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5000:5000
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          driver-opts: network=host
+
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: stage1
+          path: /tmp
+
+      - name: Load image
+        run: |
+          docker load --input /tmp/stage1.tar
+          docker image ls -a
+
+      - name: Push image to local registry
+        run: |
+          docker image tag stage1:latest localhost:5000/stage1:latest
+          docker image push localhost:5000/stage1:latest
+
+      - name: Build Docker image (stage 2)
+        uses: docker/build-push-action@v3
+        with:
+          context: ./arlo
+          file: ./arlo/Dockerfile.stage2
+          build-contexts: stage1=docker-image://localhost:5000/stage1:latest
+          push: false
+          platforms: linux/armhf
+          tags: stage2:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=min
+          outputs: type=docker,dest=/tmp/stage2.tar
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: stage2
+          path: /tmp/stage2.tar
+
+  stage3:
+    needs: stage2
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5000:5000
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          driver-opts: network=host
+
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: stage2
+          path: /tmp
+
+      - name: Load image
+        run: |
+          docker load --input /tmp/stage2.tar
+          docker image ls -a
+
+      - name: Push image to local registry
+        run: |
+          docker image tag stage2:latest localhost:5000/stage2:latest
+          docker image push localhost:5000/stage2:latest
+
+      - name: Build Docker image (stage 3)
+        uses: docker/build-push-action@v3
+        with:
+          context: ./arlo
+          file: ./arlo/Dockerfile.stage3
+          build-contexts: stage2=docker-image://localhost:5000/stage2:latest
+          push: false
+          platforms: linux/armhf
+          tags: stage3:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=min
+          outputs: type=docker,dest=/tmp/stage3.tar
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: stage3
+          path: /tmp/stage3.tar
+
+  stage4:
+    needs: stage3
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5000:5000
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          driver-opts: network=host
+
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: stage3
+          path: /tmp
+
+      - name: Load image
+        run: |
+          docker load --input /tmp/stage3.tar
+          docker image ls -a
+
+      - name: Push image to local registry
+        run: |
+          docker image tag stage3:latest localhost:5000/stage3:latest
+          docker image push localhost:5000/stage3:latest
+
+      - name: Build Docker image (stage 4)
+        uses: docker/build-push-action@v3
+        with:
+          context: ./arlo
+          file: ./arlo/Dockerfile.stage4
+          build-contexts: stage3=docker-image://localhost:5000/stage3:latest
+          push: false
+          platforms: linux/armhf
+          tags: stage4:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=min
+          outputs: type=docker,dest=/tmp/stage4.tar
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: stage4
+          path: /tmp/stage4.tar
+
+  stage5:
+    needs: stage4
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5000:5000
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          driver-opts: network=host
+
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: stage4
+          path: /tmp
+
+      - name: Load image
+        run: |
+          docker load --input /tmp/stage4.tar
+          docker image ls -a
+
+      - name: Push image to local registry
+        run: |
+          docker image tag stage4:latest localhost:5000/stage4:latest
+          docker image push localhost:5000/stage4:latest
+
+      - name: Build Docker image (stage 5)
+        uses: docker/build-push-action@v3
+        with:
+          context: ./arlo
+          file: ./arlo/Dockerfile.stage5
+          build-contexts: stage4=docker-image://localhost:5000/stage4:latest
+          push: false
+          platforms: linux/armhf
+          tags: stage5:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=min
+          outputs: type=docker,dest=/tmp/stage5.tar
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: stage5
+          path: /tmp/stage5.tar

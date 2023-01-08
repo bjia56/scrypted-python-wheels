@@ -38,7 +38,7 @@ jobs:
             key=/tmp/.buildkit/cert.pem
             cacert=/tmp/.buildkit/ca.pem
             cert=/tmp/.buildkit/key.pem
-            servername=${{ secrets.BUILDKIT_SERVER }}
+          endpoint: tcp://${{ secrets.BUILDKIT_SERVER }}
 
       - name: Build Docker image (stage 1)
         uses: docker/build-push-action@v3
@@ -87,7 +87,7 @@ jobs:
             key=/tmp/.buildkit/cert.pem
             cacert=/tmp/.buildkit/ca.pem
             cert=/tmp/.buildkit/key.pem
-            servername=${{ secrets.BUILDKIT_SERVER }}
+          endpoint: tcp://${{ secrets.BUILDKIT_SERVER }}
 
       - name: Download artifact
         uses: actions/download-artifact@v3

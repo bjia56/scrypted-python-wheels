@@ -20,6 +20,6 @@ RUN cd /build && \
     cd /build2 && \
     LD_LIBRARY_PATH=/tmp/vendor/lib:/tmp/vendor2/lib:/usr/local/ssl/lib:$LD_LIBRARY_PATH auditwheel repair *armv7l.whl
 
-RUN mkdir /output && \
-    cp /build/wheelhouse/*.whl /output && \
-    cp /build2/wheelhouse/*.whl /output
+RUN mkdir /export && \
+    cp /build/wheelhouse/*.whl /export && \
+    cp /build2/wheelhouse/*.whl /export

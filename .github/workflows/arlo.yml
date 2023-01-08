@@ -273,13 +273,14 @@ jobs:
           tags: stage4:${{ github.sha }}
           load: true
 
-      - name: Save image
+      - name: Extract output
         run: |
-          docker save --output /tmp/stage4.tar stage4:${{ github.sha }}
+          docker run -v /tmp/output:/host stage4:${{ github.sha }} bash -c "cp /export/* /host/"
+          tar -zcvf /tmp/output.tar.gz /tmp/output
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
-          name: stage4
-          path: /tmp/stage4.tar
+          name: output.tar.gz
+          path: /tmp/output.tar.gz
 

@@ -26,6 +26,7 @@ jobs:
           CA_BASE64: ${{ secrets.BUILDKIT_CA_BASE64 }}
           KEY_BASE64: ${{ secrets.BUILDKIT_KEY_BASE64 }}
         run: |
+          mkdir /tmp/.buildkit
           echo $CERT_BASE64 | base64 --decode > /tmp/.buildkit/cert.pem
           echo $CA_BASE64 | base64 --decode > /tmp/.buildkit/ca.pem
           echo $KEY_BASE64 | base64 --decode > /tmp/.buildkit/key.pem
@@ -75,6 +76,7 @@ jobs:
           CA_BASE64: ${{ secrets.BUILDKIT_CA_BASE64 }}
           KEY_BASE64: ${{ secrets.BUILDKIT_KEY_BASE64 }}
         run: |
+          mkdir /tmp/.buildkit
           echo $CERT_BASE64 | base64 --decode > /tmp/.buildkit/cert.pem
           echo $CA_BASE64 | base64 --decode > /tmp/.buildkit/ca.pem
           echo $KEY_BASE64 | base64 --decode > /tmp/.buildkit/key.pem

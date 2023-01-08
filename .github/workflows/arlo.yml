@@ -36,9 +36,9 @@ jobs:
         with:
           driver: remote
           driver-opts: |
-            key=/tmp/.buildkit/cert.pem
+            key=/tmp/.buildkit/key.pem
             cacert=/tmp/.buildkit/ca.pem
-            cert=/tmp/.buildkit/key.pem
+            cert=/tmp/.buildkit/cert.pem
           endpoint: tcp://${{ secrets.BUILDKIT_SERVER }}
 
       - name: Build Docker image (stage 1)
@@ -86,9 +86,9 @@ jobs:
         with:
           driver: remote
           driver-opts: |
-            key=/tmp/.buildkit/cert.pem
+            key=/tmp/.buildkit/key.pem
             cacert=/tmp/.buildkit/ca.pem
-            cert=/tmp/.buildkit/key.pem
+            cert=/tmp/.buildkit/cert.pem
           endpoint: tcp://${{ secrets.BUILDKIT_SERVER }}
 
       - name: Download artifact

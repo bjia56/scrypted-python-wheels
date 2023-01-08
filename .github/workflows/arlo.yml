@@ -49,7 +49,11 @@ jobs:
           push: false
           platforms: linux/armhf
           tags: stage1:latest
-          outputs: type=docker,dest=/tmp/stage1.tar
+          load: true
+
+      - name: Save image
+        run: |
+          docker save --output /tmp/stage1.tar stage1:latest
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
@@ -118,7 +122,11 @@ jobs:
           push: false
           platforms: linux/armhf
           tags: stage2:latest
-          outputs: type=docker,dest=/tmp/stage2.tar
+          load: true
+
+      - name: Save image
+        run: |
+          docker save --output /tmp/stage2.tar stage2:latest
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3

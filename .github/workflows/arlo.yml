@@ -20,8 +20,25 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
 
+      - name: Prepare BuildKit access
+        env:
+          CERT_BASE64: ${{ secrets.BUILDKIT_CERT_BASE64 }}
+          CA_BASE64: ${{ secrets.BUILDKIT_CA_BASE64 }}
+          KEY_BASE64: ${{ secrets.BUILDKIT_KEY_BASE64 }}
+        run: |
+          echo $CERT_BASE64 | base64 --decode > /tmp/.buildkit/cert.pem
+          echo $CA_BASE64 | base64 --decode > /tmp/.buildkit/ca.pem
+          echo $KEY_BASE64 | base64 --decode > /tmp/.buildkit/key.pem
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+        with:
+          driver: remote
+          driver-opts: |
+            key=/tmp/.buildkit/cert.pem
+            cacert=/tmp/.buildkit/ca.pem
+            cert=/tmp/.buildkit/key.pem
+            servername=${{ secrets.BUILDKIT_SERVER }}
 
       - name: Build Docker image (stage 1)
         uses: docker/build-push-action@v3
@@ -31,8 +48,6 @@ jobs:
           push: false
           platforms: linux/armhf
           tags: stage1:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=min
           outputs: type=docker,dest=/tmp/stage1.tar
 
       - name: Upload artifact
@@ -46,32 +61,33 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    services:
-      registry:
-        image: registry:2
-        ports:
-          - 5000:5000
 
     steps:
-      - name: Maximize build space
-        uses: easimon/maximize-build-space@master
-        with:
-          root-reserve-mb: 6000
-          swap-size-mb: 50000
-          remove-dotnet: 'true'
-          remove-android: 'true'
-          remove-haskell: 'true'
-
       - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
 
+      - name: Prepare BuildKit access
+        env:
+          CERT_BASE64: ${{ secrets.BUILDKIT_CERT_BASE64 }}
+          CA_BASE64: ${{ secrets.BUILDKIT_CA_BASE64 }}
+          KEY_BASE64: ${{ secrets.BUILDKIT_KEY_BASE64 }}
+        run: |
+          echo $CERT_BASE64 | base64 --decode > /tmp/.buildkit/cert.pem
+          echo $CA_BASE64 | base64 --decode > /tmp/.buildkit/ca.pem
+          echo $KEY_BASE64 | base64 --decode > /tmp/.buildkit/key.pem
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
         with:
-          driver-opts: network=host
+          driver: remote
+          driver-opts: |
+            key=/tmp/.buildkit/cert.pem
+            cacert=/tmp/.buildkit/ca.pem
+            cert=/tmp/.buildkit/key.pem
+            servername=${{ secrets.BUILDKIT_SERVER }}
 
       - name: Download artifact
         uses: actions/download-artifact@v3
@@ -86,24 +102,20 @@ jobs:
           rm /tmp/stage1.tar
           docker image ls -a
 
-      - name: Push image to local registry
+      - name: Push image to registry
         run: |
-          docker image tag stage1:latest localhost:5000/stage1:latest
-          docker image push localhost:5000/stage1:latest
-          docker system prune -af
-          docker image ls -a
+          docker image tag stage1:latest ${{ secrets.STAGING_REGISTRY }}/stage1:latest
+          docker image push ${{ secrets.STAGING_REGISTRY }}/stage1:latest
 
       - name: Build Docker image (stage 2)
         uses: docker/build-push-action@v3
         with:
           context: ./arlo
           file: ./arlo/Dockerfile.stage2
-          build-contexts: stage1=docker-image://localhost:5000/stage1:latest
+          build-contexts: stage1=docker-image://${{ secrets.STAGING_REGISTRY }}/stage1:latest
           push: false
           platforms: linux/armhf
           tags: stage2:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=min
           outputs: type=docker,dest=/tmp/stage2.tar
 
       - name: Upload artifact

@@ -17,9 +17,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-
       - name: Prepare BuildKit access
         env:
           CERT_BASE64: ${{ secrets.BUILDKIT_CERT_BASE64 }}
@@ -48,12 +45,12 @@ jobs:
           file: ./arlo/Dockerfile.stage1
           push: false
           platforms: linux/armhf
-          tags: stage1:latest
+          tags: stage1:${{ github.sha }}
           load: true
 
       - name: Save image
         run: |
-          docker save --output /tmp/stage1.tar stage1:latest
+          docker save --output /tmp/stage1.tar stage1:${{ github.sha }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
@@ -70,9 +67,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
 
       - name: Prepare BuildKit access
         env:
@@ -101,43 +95,191 @@ jobs:
           name: stage1
           path: /tmp
 
-      - name: Load image
+      - name: Load previous image
         run: |
-          docker system prune -af
           docker load --input /tmp/stage1.tar
-          rm /tmp/stage1.tar
           docker image ls -a
 
-      - name: Log in to staging registry
+      - name: Login to staging registry
         uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
         with:
           registry: ${{ secrets.STAGING_REGISTRY }}
           username: ${{ secrets.STAGING_REGISTRY_USER }}
           password: ${{ secrets.STAGING_REGISTRY_PASS }}
 
-      - name: Push image to registry
+      - name: Push to staging registry
         run: |
-          docker image tag stage1:latest ${{ secrets.STAGING_REGISTRY }}/stage1:latest
-          docker image push ${{ secrets.STAGING_REGISTRY }}/stage1:latest
+          docker image tag stage1:${{ github.sha }} ${{ secrets.STAGING_REGISTRY }}/stage1:${{ github.sha }}
+          docker image push ${{ secrets.STAGING_REGISTRY }}/stage1:${{ github.sha }}
 
       - name: Build Docker image (stage 2)
         uses: docker/build-push-action@v3
         with:
           context: ./arlo
           file: ./arlo/Dockerfile.stage2
-          build-contexts: stage1=docker-image://${{ secrets.STAGING_REGISTRY }}/stage1:latest
+          build-contexts: stage1=docker-image://${{ secrets.STAGING_REGISTRY }}/stage1:${{ github.sha }}
           push: false
           platforms: linux/armhf
-          tags: stage2:latest
+          tags: stage2:${{ github.sha }}
           load: true
 
       - name: Save image
         run: |
-          docker save --output /tmp/stage2.tar stage2:latest
+          docker save --output /tmp/stage2.tar stage2:${{ github.sha }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
           name: stage2
           path: /tmp/stage2.tar
+
+  stage3:
+    needs: stage2
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Prepare BuildKit access
+        env:
+          CERT_BASE64: ${{ secrets.BUILDKIT_CERT_BASE64 }}
+          CA_BASE64: ${{ secrets.BUILDKIT_CA_BASE64 }}
+          KEY_BASE64: ${{ secrets.BUILDKIT_KEY_BASE64 }}
+        run: |
+          mkdir /tmp/.buildkit
+          echo $CERT_BASE64 | base64 --decode > /tmp/.buildkit/cert.pem
+          echo $CA_BASE64 | base64 --decode > /tmp/.buildkit/ca.pem
+          echo $KEY_BASE64 | base64 --decode > /tmp/.buildkit/key.pem
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          driver: remote
+          driver-opts: |
+            key=/tmp/.buildkit/key.pem
+            cacert=/tmp/.buildkit/ca.pem
+            cert=/tmp/.buildkit/cert.pem
+          endpoint: tcp://${{ secrets.BUILDKIT_SERVER }}
+
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: stage2
+          path: /tmp
+
+      - name: Load previous image
+        run: |
+          docker load --input /tmp/stage2.tar
+          docker image ls -a
+
+      - name: Login to staging registry
+        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        with:
+          registry: ${{ secrets.STAGING_REGISTRY }}
+          username: ${{ secrets.STAGING_REGISTRY_USER }}
+          password: ${{ secrets.STAGING_REGISTRY_PASS }}
+
+      - name: Push to staging registry
+        run: |
+          docker image tag stage2:${{ github.sha }} ${{ secrets.STAGING_REGISTRY }}/stage2:${{ github.sha }}
+          docker image push ${{ secrets.STAGING_REGISTRY }}/stage2:${{ github.sha }}
+
+      - name: Build Docker image (stage 3)
+        uses: docker/build-push-action@v3
+        with:
+          context: ./arlo
+          file: ./arlo/Dockerfile.stage3
+          build-contexts: stage2=docker-image://${{ secrets.STAGING_REGISTRY }}/stage2:${{ github.sha }}
+          push: false
+          platforms: linux/armhf
+          tags: stage3:${{ github.sha }}
+          load: true
+
+      - name: Save image
+        run: |
+          docker save --output /tmp/stage3.tar stage3:${{ github.sha }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: stage3
+          path: /tmp/stage3.tar
+
+  stage4:
+    needs: stage3
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Prepare BuildKit access
+        env:
+          CERT_BASE64: ${{ secrets.BUILDKIT_CERT_BASE64 }}
+          CA_BASE64: ${{ secrets.BUILDKIT_CA_BASE64 }}
+          KEY_BASE64: ${{ secrets.BUILDKIT_KEY_BASE64 }}
+        run: |
+          mkdir /tmp/.buildkit
+          echo $CERT_BASE64 | base64 --decode > /tmp/.buildkit/cert.pem
+          echo $CA_BASE64 | base64 --decode > /tmp/.buildkit/ca.pem
+          echo $KEY_BASE64 | base64 --decode > /tmp/.buildkit/key.pem
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          driver: remote
+          driver-opts: |
+            key=/tmp/.buildkit/key.pem
+            cacert=/tmp/.buildkit/ca.pem
+            cert=/tmp/.buildkit/cert.pem
+          endpoint: tcp://${{ secrets.BUILDKIT_SERVER }}
+
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: stage3
+          path: /tmp
+
+      - name: Load previous image
+        run: |
+          docker load --input /tmp/stage3.tar
+          docker image ls -a
+
+      - name: Login to staging registry
+        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        with:
+          registry: ${{ secrets.STAGING_REGISTRY }}
+          username: ${{ secrets.STAGING_REGISTRY_USER }}
+          password: ${{ secrets.STAGING_REGISTRY_PASS }}
+
+      - name: Push to staging registry
+        run: |
+          docker image tag stage3:${{ github.sha }} ${{ secrets.STAGING_REGISTRY }}/stage3:${{ github.sha }}
+          docker image push ${{ secrets.STAGING_REGISTRY }}/stage3:${{ github.sha }}
+
+      - name: Build Docker image (stage 4)
+        uses: docker/build-push-action@v3
+        with:
+          context: ./arlo
+          file: ./arlo/Dockerfile.stage4
+          build-contexts: stage3=docker-image://${{ secrets.STAGING_REGISTRY }}/stage3:${{ github.sha }}
+          push: false
+          platforms: linux/armhf
+          tags: stage4:${{ github.sha }}
+          load: true
+
+      - name: Save image
+        run: |
+          docker save --output /tmp/stage4.tar stage4:${{ github.sha }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: stage4
+          path: /tmp/stage4.tar
 

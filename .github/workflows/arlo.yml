@@ -108,6 +108,13 @@ jobs:
           rm /tmp/stage1.tar
           docker image ls -a
 
+      - name: Log in to staging registry
+        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        with:
+          registry: ${{ secrets.STAGING_REGISTRY }}
+          username: ${{ secrets.STAGING_REGISTRY_USER }}
+          password: ${{ secrets.STAGING_REGISTRY_PASS }}
+
       - name: Push image to registry
         run: |
           docker image tag stage1:latest ${{ secrets.STAGING_REGISTRY }}/stage1:latest

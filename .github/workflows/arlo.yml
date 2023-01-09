@@ -17,26 +17,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Prepare BuildKit access
-        env:
-          CERT_BASE64: ${{ secrets.BUILDKIT_CERT_BASE64 }}
-          CA_BASE64: ${{ secrets.BUILDKIT_CA_BASE64 }}
-          KEY_BASE64: ${{ secrets.BUILDKIT_KEY_BASE64 }}
-        run: |
-          mkdir /tmp/.buildkit
-          echo $CERT_BASE64 | base64 --decode > /tmp/.buildkit/cert.pem
-          echo $CA_BASE64 | base64 --decode > /tmp/.buildkit/ca.pem
-          echo $KEY_BASE64 | base64 --decode > /tmp/.buildkit/key.pem
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
-        with:
-          driver: remote
-          driver-opts: |
-            key=/tmp/.buildkit/key.pem
-            cacert=/tmp/.buildkit/ca.pem
-            cert=/tmp/.buildkit/cert.pem
-          endpoint: tcp://${{ secrets.BUILDKIT_SERVER }}
 
       - name: Build Docker image (stage 1)
         uses: docker/build-push-action@v3
@@ -45,24 +30,10 @@ jobs:
           file: ./arlo/Dockerfile.stage1
           push: false
           platforms: linux/armhf
-          tags: stage1:${{ github.sha }}
-          load: true
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.8"
-
-      - name: Squash container
-        run: |
-          python -m pip install --upgrade pip
-          pip install docker-squash
-          docker-squash -t stage1-squashed:${{ github.sha }} stage1:${{ github.sha }}
-          docker image tag stage1-squashed:${{ github.sha }} stage1:${{ github.sha }}
-
-      - name: Save image
-        run: |
-          docker save --output /tmp/stage1.tar stage1:${{ github.sha }}
+          tags: stage1:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=min
+          outputs: type=docker,dest=/tmp/stage1.tar
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
@@ -75,31 +46,23 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5000:5000
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Prepare BuildKit access
-        env:
-          CERT_BASE64: ${{ secrets.BUILDKIT_CERT_BASE64 }}
-          CA_BASE64: ${{ secrets.BUILDKIT_CA_BASE64 }}
-          KEY_BASE64: ${{ secrets.BUILDKIT_KEY_BASE64 }}
-        run: |
-          mkdir /tmp/.buildkit
-          echo $CERT_BASE64 | base64 --decode > /tmp/.buildkit/cert.pem
-          echo $CA_BASE64 | base64 --decode > /tmp/.buildkit/ca.pem
-          echo $KEY_BASE64 | base64 --decode > /tmp/.buildkit/key.pem
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
         with:
-          driver: remote
-          driver-opts: |
-            key=/tmp/.buildkit/key.pem
-            cacert=/tmp/.buildkit/ca.pem
-            cert=/tmp/.buildkit/cert.pem
-          endpoint: tcp://${{ secrets.BUILDKIT_SERVER }}
+          driver-opts: network=host
 
       - name: Download artifact
         uses: actions/download-artifact@v3
@@ -107,49 +70,28 @@ jobs:
           name: stage1
           path: /tmp
 
-      - name: Load previous image
+      - name: Load image
         run: |
           docker load --input /tmp/stage1.tar
           docker image ls -a
 
-      - name: Login to staging registry
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
-        with:
-          registry: ${{ secrets.STAGING_REGISTRY }}
-          username: ${{ secrets.STAGING_REGISTRY_USER }}
-          password: ${{ secrets.STAGING_REGISTRY_PASS }}
-
-      - name: Push to staging registry
+      - name: Push image to local registry
         run: |
-          docker image tag stage1:${{ github.sha }} ${{ secrets.STAGING_REGISTRY }}/stage1:${{ github.sha }}
-          docker image push ${{ secrets.STAGING_REGISTRY }}/stage1:${{ github.sha }}
+          docker image tag stage1:latest localhost:5000/stage1:latest
+          docker image push localhost:5000/stage1:latest
 
       - name: Build Docker image (stage 2)
         uses: docker/build-push-action@v3
         with:
           context: ./arlo
           file: ./arlo/Dockerfile.stage2
-          build-contexts: stage1=docker-image://${{ secrets.STAGING_REGISTRY }}/stage1:${{ github.sha }}
+          build-contexts: stage1=docker-image://localhost:5000/stage1:latest
           push: false
           platforms: linux/armhf
-          tags: stage2:${{ github.sha }}
-          load: true
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.8"
-
-      - name: Squash container
-        run: |
-          python -m pip install --upgrade pip
-          pip install docker-squash
-          docker-squash -t stage2-squashed:${{ github.sha }} stage2:${{ github.sha }}
-          docker image tag stage2-squashed:${{ github.sha }} stage2:${{ github.sha }}
-
-      - name: Save image
-        run: |
-          docker save --output /tmp/stage2.tar stage2:${{ github.sha }}
+          tags: stage2:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=min
+          outputs: type=docker,dest=/tmp/stage2.tar
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
@@ -162,31 +104,23 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5000:5000
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Prepare BuildKit access
-        env:
-          CERT_BASE64: ${{ secrets.BUILDKIT_CERT_BASE64 }}
-          CA_BASE64: ${{ secrets.BUILDKIT_CA_BASE64 }}
-          KEY_BASE64: ${{ secrets.BUILDKIT_KEY_BASE64 }}
-        run: |
-          mkdir /tmp/.buildkit
-          echo $CERT_BASE64 | base64 --decode > /tmp/.buildkit/cert.pem
-          echo $CA_BASE64 | base64 --decode > /tmp/.buildkit/ca.pem
-          echo $KEY_BASE64 | base64 --decode > /tmp/.buildkit/key.pem
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
         with:
-          driver: remote
-          driver-opts: |
-            key=/tmp/.buildkit/key.pem
-            cacert=/tmp/.buildkit/ca.pem
-            cert=/tmp/.buildkit/cert.pem
-          endpoint: tcp://${{ secrets.BUILDKIT_SERVER }}
+          driver-opts: network=host
 
       - name: Download artifact
         uses: actions/download-artifact@v3
@@ -194,49 +128,28 @@ jobs:
           name: stage2
           path: /tmp
 
-      - name: Load previous image
+      - name: Load image
         run: |
           docker load --input /tmp/stage2.tar
           docker image ls -a
 
-      - name: Login to staging registry
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
-        with:
-          registry: ${{ secrets.STAGING_REGISTRY }}
-          username: ${{ secrets.STAGING_REGISTRY_USER }}
-          password: ${{ secrets.STAGING_REGISTRY_PASS }}
-
-      - name: Push to staging registry
+      - name: Push image to local registry
         run: |
-          docker image tag stage2:${{ github.sha }} ${{ secrets.STAGING_REGISTRY }}/stage2:${{ github.sha }}
-          docker image push ${{ secrets.STAGING_REGISTRY }}/stage2:${{ github.sha }}
+          docker image tag stage2:latest localhost:5000/stage2:latest
+          docker image push localhost:5000/stage2:latest
 
       - name: Build Docker image (stage 3)
         uses: docker/build-push-action@v3
         with:
           context: ./arlo
           file: ./arlo/Dockerfile.stage3
-          build-contexts: stage2=docker-image://${{ secrets.STAGING_REGISTRY }}/stage2:${{ github.sha }}
+          build-contexts: stage2=docker-image://localhost:5000/stage2:latest
           push: false
           platforms: linux/armhf
-          tags: stage3:${{ github.sha }}
-          load: true
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.8"
-
-      - name: Squash container
-        run: |
-          python -m pip install --upgrade pip
-          pip install docker-squash
-          docker-squash -t stage3-squashed:${{ github.sha }} stage3:${{ github.sha }}
-          docker image tag stage3-squashed:${{ github.sha }} stage3:${{ github.sha }}
-
-      - name: Save image
-        run: |
-          docker save --output /tmp/stage3.tar stage3:${{ github.sha }}
+          tags: stage3:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=min
+          outputs: type=docker,dest=/tmp/stage3.tar
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
@@ -249,31 +162,23 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5000:5000
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Prepare BuildKit access
-        env:
-          CERT_BASE64: ${{ secrets.BUILDKIT_CERT_BASE64 }}
-          CA_BASE64: ${{ secrets.BUILDKIT_CA_BASE64 }}
-          KEY_BASE64: ${{ secrets.BUILDKIT_KEY_BASE64 }}
-        run: |
-          mkdir /tmp/.buildkit
-          echo $CERT_BASE64 | base64 --decode > /tmp/.buildkit/cert.pem
-          echo $CA_BASE64 | base64 --decode > /tmp/.buildkit/ca.pem
-          echo $KEY_BASE64 | base64 --decode > /tmp/.buildkit/key.pem
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
         with:
-          driver: remote
-          driver-opts: |
-            key=/tmp/.buildkit/key.pem
-            cacert=/tmp/.buildkit/ca.pem
-            cert=/tmp/.buildkit/cert.pem
-          endpoint: tcp://${{ secrets.BUILDKIT_SERVER }}
+          driver-opts: network=host
 
       - name: Download artifact
         uses: actions/download-artifact@v3
@@ -281,37 +186,31 @@ jobs:
           name: stage3
           path: /tmp
 
-      - name: Load previous image
+      - name: Load image
         run: |
           docker load --input /tmp/stage3.tar
           docker image ls -a
-
-      - name: Login to staging registry
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
-        with:
-          registry: ${{ secrets.STAGING_REGISTRY }}
-          username: ${{ secrets.STAGING_REGISTRY_USER }}
-          password: ${{ secrets.STAGING_REGISTRY_PASS }}
-
-      - name: Push to staging registry
+      - name: Push image to local registry
         run: |
-          docker image tag stage3:${{ github.sha }} ${{ secrets.STAGING_REGISTRY }}/stage3:${{ github.sha }}
-          docker image push ${{ secrets.STAGING_REGISTRY }}/stage3:${{ github.sha }}
+          docker image tag stage3:latest localhost:5000/stage3:latest
+          docker image push localhost:5000/stage3:latest
 
       - name: Build Docker image (stage 4)
         uses: docker/build-push-action@v3
         with:
           context: ./arlo
           file: ./arlo/Dockerfile.stage4
-          build-contexts: stage3=docker-image://${{ secrets.STAGING_REGISTRY }}/stage3:${{ github.sha }}
+          build-contexts: stage3=docker-image://localhost:5000/stage3:latest
           push: false
           platforms: linux/armhf
-          tags: stage4:${{ github.sha }}
+          tags: stage4:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=min
           load: true
 
       - name: Extract output
         run: |
-          docker run -v /tmp/output:/host stage4:${{ github.sha }} bash -c "cp /export/* /host/"
+          docker run -v /tmp/output:/host stage4:latest bash -c "cp /export/* /host/"
           tar -zcvf /tmp/output.tar.gz /tmp/output
 
       - name: Upload artifact

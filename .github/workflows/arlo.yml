@@ -48,6 +48,18 @@ jobs:
           tags: stage1:${{ github.sha }}
           load: true
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+
+      - name: Squash container
+        run: |
+          python -m pip install --upgrade pip
+          pip install docker-squash
+          docker-squash -t stage1-squashed:${{ github.sha }} stage1:${{ github.sha }}
+          docker image tag stage1-squashed:${{ github.sha }} stage1:${{ github.sha }}
+
       - name: Save image
         run: |
           docker save --output /tmp/stage1.tar stage1:${{ github.sha }}
@@ -123,6 +135,18 @@ jobs:
           tags: stage2:${{ github.sha }}
           load: true
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+
+      - name: Squash container
+        run: |
+          python -m pip install --upgrade pip
+          pip install docker-squash
+          docker-squash -t stage2-squashed:${{ github.sha }} stage2:${{ github.sha }}
+          docker image tag stage2-squashed:${{ github.sha }} stage2:${{ github.sha }}
+
       - name: Save image
         run: |
           docker save --output /tmp/stage2.tar stage2:${{ github.sha }}
@@ -197,6 +221,18 @@ jobs:
           platforms: linux/armhf
           tags: stage3:${{ github.sha }}
           load: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+
+      - name: Squash container
+        run: |
+          python -m pip install --upgrade pip
+          pip install docker-squash
+          docker-squash -t stage3-squashed:${{ github.sha }} stage3:${{ github.sha }}
+          docker image tag stage3-squashed:${{ github.sha }} stage3:${{ github.sha }}
 
       - name: Save image
         run: |

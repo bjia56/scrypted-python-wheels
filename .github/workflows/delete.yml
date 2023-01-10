@@ -1,4 +1,4 @@
-name: Delete from in-repo PyPI
+name: Delete from repo PyPI
 
 on:
   workflow_dispatch:
@@ -32,9 +32,9 @@ jobs:
     - name: Create Pull Request
       uses: peter-evans/create-pull-request@v3
       with:
-        commit-message: ':package: [:robot:] Delete package from PyPi index'
-        title: '[🤖] Delete `${{ inputs.package_name }}` from PyPi index'
+        commit-message: ':package: [:robot:] Delete package from PyPI index'
+        title: '[🤖] Delete `${{ inputs.package_name }}` from PyPI index'
         body: Automatically generated PR, deleting `${{ inputs.package_name }}` from
-          PyPi index.
+          PyPI index.
         branch-suffix: random
         delete-branch: true

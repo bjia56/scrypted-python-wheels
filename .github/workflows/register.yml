@@ -1,4 +1,4 @@
-name: register
+name: Register to in-repo PyPI
 
 on:
   workflow_dispatch:
@@ -19,10 +19,6 @@ on:
         description: 'A short description of the package'
         required: true
         type: string
-      long_desc:
-        description: 'A longer description of the package (HTML)'
-        required: true
-        type: string
       homepage:
         description: 'Homepage of the package (link to the github repository)'
         required: true
@@ -37,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.6]
+        python-version: [3.8]
 
     steps:
     - uses: actions/checkout@v2
@@ -52,7 +48,6 @@ jobs:
         PKG_VERSION: ${{ inputs.version }}
         PKG_AUTHOR: ${{ inputs.author }}
         PKG_SHORT_DESC: ${{ inputs.short_desc }}
-        PKG_LONG_DESC: ${{ inputs.long_desc }}
         PKG_HOMEPAGE: ${{ inputs.homepage }}
         PKG_LINK: ${{ inputs.link }}
       run: |

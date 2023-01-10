@@ -1,4 +1,4 @@
-name: update
+name: Update in-repo PyPI
 
 on:
   workflow_dispatch:
@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.6]
+        python-version: [3.8]
 
     steps:
     - uses: actions/checkout@v2

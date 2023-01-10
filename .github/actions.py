@@ -25,7 +25,7 @@ def package_exists(soup, package_name):
     return False
 
 
-def register(pkg_name, version, author, short_desc, long_desc, homepage, link):
+def register(pkg_name, version, author, short_desc, homepage, link):
     # Read our index first
     with open(INDEX_FILE) as html_file:
         soup = BeautifulSoup(html_file, "html.parser")
@@ -57,7 +57,6 @@ def register(pkg_name, version, author, short_desc, long_desc, homepage, link):
     template = template.replace("_link", "{}#egg={}-{}".format(link, norm_pkg_name, version))
     template = template.replace("_homepage", homepage)
     template = template.replace("_author", author)
-    template = template.replace("_long_description", long_desc)
 
     os.mkdir(norm_pkg_name)
     package_index = os.path.join(norm_pkg_name, INDEX_FILE)
@@ -82,7 +81,7 @@ def update(pkg_name, version, link):
         index.write(soup.prettify("utf-8"))
 
     # Change the package page
-    index_file = os.path.join(norm_pkg_name, INDEX_FILE) 
+    index_file = os.path.join(norm_pkg_name, INDEX_FILE)
     with open(index_file) as html_file:
         soup = BeautifulSoup(html_file, "html.parser")
 
@@ -95,7 +94,7 @@ def update(pkg_name, version, link):
     last_anchor.insert_after(new_anchor)
 
     # Change the latest version
-    soup.html.body.div.section.find_all('span')[1].contents[0].replace_with(version) 
+    soup.html.body.div.section.find_all('span')[1].contents[0].replace_with(version)
 
     # Save it
     with open(index_file, 'wb') as index:
@@ -131,7 +130,6 @@ def main():
             version=os.environ["PKG_VERSION"],
             author=os.environ["PKG_AUTHOR"],
             short_desc=os.environ["PKG_SHORT_DESC"],
-            long_desc=os.environ["PKG_LONG_DESC"],
             homepage=os.environ["PKG_HOMEPAGE"],
             link=os.environ["PKG_LINK"],
         )

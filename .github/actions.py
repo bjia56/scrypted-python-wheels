@@ -3,6 +3,7 @@ import json
 import copy
 import re
 import shutil
+from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
 
@@ -55,6 +56,12 @@ def register(pkg_name, version, author, short_desc, homepage, link):
     template = template.replace("_package_name", pkg_name)
     template = template.replace("_version", version)
     template = template.replace("_link", "{}#egg={}-{}".format(link, norm_pkg_name, version))
+    if link.startswith('http'):
+        url = urlparse(link)
+        filename = url.path.split('/')[-1]
+        template = template.replace("_filename", filename)
+    else:
+        template = template.replace("_filename", "")
     template = template.replace("_homepage", homepage)
     template = template.replace("_author", author)
 
@@ -89,6 +96,10 @@ def update(pkg_name, version, link):
     last_anchor = soup.find_all('a')[-1]        # Copy the last anchor element
     new_anchor = copy.copy(last_anchor)
     new_anchor['href'] = "{}#egg={}-{}".format(link, norm_pkg_name, version)
+    if link.startswith('http'):
+        url = urlparse(link)
+        filename = url.path.split('/')[-1]
+        new_anchor.contents[0].replace_with(filename)
 
     # Add it to our index
     last_anchor.insert_after(new_anchor)

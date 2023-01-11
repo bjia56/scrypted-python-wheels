@@ -1,11 +1,11 @@
 name: Build @scrypted/arlo dependencies
 
 on:
-  #push:
-  #  branches:
-  #    - main
-  #  tags:
-  #pull_request:
+  push:
+    branches: ["main"]
+    paths: ["arlo/**"]
+  pull_request:
+    paths: ["arlo/**"]
   workflow_dispatch:
 
 jobs:

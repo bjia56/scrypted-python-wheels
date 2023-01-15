@@ -5,10 +5,6 @@ RUN wget https://github.com/aiortc/pylibsrtp/archive/refs/tags/0.7.1.tar.gz && \
     cd pylibsrtp-0.7.1 && \
     python3.8 scripts/build-libsrtp.py /tmp/vendor2
 
-RUN pip3.7 install -U setuptools wheel && \
-    pip3.8 install -U setuptools wheel && \
-    pip3.9 install -U setuptools wheel
-
 COPY requirements.txt .
 ENV PIP_DEFAULT_TIMEOUT=100
 ENV CFLAGS='-I/usr/local/ssl/include -I/tmp/vendor/include -I/tmp/vendor2/include'
@@ -24,11 +20,21 @@ RUN mkdir /build3.8 && \
 RUN mkdir /build3.9 && \
     cd /build3.9 && \
     pip3.9 wheel -r ../requirements.txt
+RUN mkdir /build3.10 && \
+    cd /build3.10 && \
+    pip3.10 wheel -r ../requirements.txt
+RUN mkdir /build3.11 && \
+    cd /build3.11 && \
+    pip3.11 wheel -r ../requirements.txt
 
 RUN cd /build3.7 && auditwheel repair *armv7l.whl && \
     cd /build3.8 && auditwheel repair *armv7l.whl && \
-    cd /build3.9 && auditwheel repair *armv7l.whl
+    cd /build3.9 && auditwheel repair *armv7l.whl && \
+    cd /build3.10 && auditwheel repair *armv7l.whl && \
+    cd /build3.11 && auditwheel repair *armv7l.whl
 RUN mkdir /export && \
     cp /build3.7/wheelhouse/*.whl /export && \
     cp /build3.8/wheelhouse/*.whl /export && \
-    cp /build3.9/wheelhouse/*.whl /export
+    cp /build3.9/wheelhouse/*.whl /export && \
+    cp /build3.10/wheelhouse/*.whl /export && \
+    cp /build3.11/wheelhouse/*.whl /export

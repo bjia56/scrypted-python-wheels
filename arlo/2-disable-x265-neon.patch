@@ -11,7 +11,7 @@ index 95203f3..a9f8ea2 100644
 +                 add_definitions(-DHAVE_NEON)
 +             else()
 +-                set(ARM_ARGS -mcpu=native -mfloat-abi=hard -mfpu=vfp -marm)
-++                set(ARM_ARGS -mcpu=generic-armv7-a -mfloat-abi=hard -mfpu=vfp -marm)
+++                set(ARM_ARGS -mcpu=generic-armv7-a -mfloat-abi=hard -mfpu=vfp -marm -fPIC)
 +             endif()
 +         endif()
 +     endif()

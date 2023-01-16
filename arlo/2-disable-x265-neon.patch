@@ -1,0 +1,169 @@
+diff --git a/patches/x265.patch b/patches/x265.patch
+index 95203f3..a9f8ea2 100644
+--- a/patches/x265.patch
++++ b/patches/x265.patch
+@@ -23,13 +23,22 @@ diff -urN x265_3.5.orig/source/CMakeLists.txt x265_3.5/source/CMakeLists.txt
+              add_definitions(-DHAVE_NEON)
+          else()
+              find_package(Neon)
++@@ -259,7 +259,7 @@
++                 set(ARM_ARGS -mcpu=native -mfloat-abi=hard -mfpu=neon -marm -fPIC)
++                 add_definitions(-DHAVE_NEON)
++             else()
++-                set(ARM_ARGS -mcpu=native -mfloat-abi=hard -mfpu=vfp -marm)
+++                set(ARM_ARGS -mcpu=generic-armv7-a -mfloat-abi=hard -mfpu=vfp -marm)
++             endif()
++         endif()
++     endif()
+ diff -urN x265_3.5.orig/source/common/aarch64/asm.S x265_3.5/source/common/aarch64/asm.S
+ --- x265_3.5.orig/source/common/aarch64/asm.S	2021-03-16 13:53:00.000000000 +0100
+ +++ x265_3.5/source/common/aarch64/asm.S	2022-02-22 10:13:49.991449401 +0100
+ @@ -23,32 +23,56 @@
+- 
++
+  .arch           armv8-a
+- 
++
+ +#ifdef __APPLE__
+ +#define PREFIX 1
+ +#endif
+@@ -41,7 +50,7 @@ diff -urN x265_3.5.orig/source/common/aarch64/asm.S x265_3.5/source/common/aarch
+  #define EXTERN_ASM
+ +#define HAVE_AS_FUNC 1
+  #endif
+- 
++
+  #ifdef __ELF__
+  #define ELF
+  #else
+@@ -53,7 +62,7 @@ diff -urN x265_3.5.orig/source/common/aarch64/asm.S x265_3.5/source/common/aarch
+ -
+ -#define HAVE_AS_FUNC 1
+ +#endif
+- 
++
+  #if HAVE_AS_FUNC
+  #define FUNC
+  #else
+@@ -70,7 +79,7 @@ diff -urN x265_3.5.orig/source/common/aarch64/asm.S x265_3.5/source/common/aarch
+ +FUNC .endfunc
+ +.endm
+ +#endif
+- 
++
+  .macro function name, export=1
+ +#ifdef __APPLE__
+ +    .global \name
+@@ -89,17 +98,17 @@ diff -urN x265_3.5.orig/source/common/aarch64/ipfilter8.S x265_3.5/source/common
+ --- x265_3.5.orig/source/common/aarch64/ipfilter8.S	2021-03-16 13:53:00.000000000 +0100
+ +++ x265_3.5/source/common/aarch64/ipfilter8.S	2022-02-22 10:13:49.991449401 +0100
+ @@ -23,7 +23,11 @@
+- 
++
+  #include "asm.S"
+- 
++
+ +#ifdef __APPLE__
+ +.section __RODATA, __rodata
+ +#else
+  .section .rodata
+ +#endif
+- 
++
+  .align 4
+- 
++
+ @@ -197,10 +201,10 @@
+      b.eq            15f
+      b               7f
+@@ -136,7 +145,7 @@ diff -urN x265_3.5.orig/source/common/aarch64/ipfilter8.S x265_3.5/source/common
+      ret
+  endfunc
+  .endm
+- 
++
+ -LUMA_HPS    4 4
+ -LUMA_HPS    4 8
+ -LUMA_HPS    4 16
+@@ -191,51 +200,51 @@ diff -urN x265_3.5.orig/source/common/aarch64/mc-a.S x265_3.5/source/common/aarc
+ --- x265_3.5.orig/source/common/aarch64/mc-a.S	2021-03-16 13:53:00.000000000 +0100
+ +++ x265_3.5/source/common/aarch64/mc-a.S	2022-02-22 10:13:49.991449401 +0100
+ @@ -23,7 +23,11 @@
+- 
++
+  #include "asm.S"
+- 
++
+ +#ifdef __APPLE__
+ +.section __RODATA,__rodata
+ +#else
+  .section .rodata
+ +#endif
+- 
++
+  .align 4
+- 
++
+ diff -urN x265_3.5.orig/source/common/aarch64/pixel-util.S x265_3.5/source/common/aarch64/pixel-util.S
+ --- x265_3.5.orig/source/common/aarch64/pixel-util.S	2021-03-16 13:53:00.000000000 +0100
+ +++ x265_3.5/source/common/aarch64/pixel-util.S	2022-02-22 10:13:49.991449401 +0100
+ @@ -24,7 +24,11 @@
+- 
++
+  #include "asm.S"
+- 
++
+ +#ifdef __APPLE__
+ +.section __RODATA,__rodata
+ +#else
+  .section .rodata
+ +#endif
+- 
++
+  .align 4
+- 
++
+ diff -urN x265_3.5.orig/source/common/aarch64/sad-a.S x265_3.5/source/common/aarch64/sad-a.S
+ --- x265_3.5.orig/source/common/aarch64/sad-a.S	2021-03-16 13:53:00.000000000 +0100
+ +++ x265_3.5/source/common/aarch64/sad-a.S	2022-02-22 10:13:49.991449401 +0100
+ @@ -23,7 +23,11 @@
+- 
++
+  #include "asm.S"
+- 
++
+ +#ifdef __APPLE__
+ +.section __RODATA,__rodata
+ +#else
+  .section .rodata
+ +#endif
+- 
++
+  .align 4
+- 
++
+ @@ -94,12 +98,12 @@
+  endfunc
+  .endm
+- 
++
+ -SAD_X_8xN 3 4
+ -SAD_X_8xN 3 8
+ -SAD_X_8xN 3 16
+@@ -266,3 +275,16 @@ diff -urN x265_3.5.orig/source/test/testharness.h x265_3.5/source/test/testharne
+  /* fallback for older GCC/MinGW */
+  static inline uint32_t __rdtsc(void)
+  {
++diff -urN x265_3.5.orig/source/cmake/FindNeon.cmake x265_3.5/source/cmake/FindNeon.cmake
++--- x265_3.5.orig/source/cmake/FindNeon.cmake	2022-12-27 21:54:41.548662000 -0500
+++++ x265_3.5/source/cmake/FindNeon.cmake	2022-12-27 21:57:26.557499000 -0500
++@@ -5,6 +5,6 @@
++                 OUTPUT_VARIABLE neon_version
++                 ERROR_QUIET
++                 OUTPUT_STRIP_TRAILING_WHITESPACE)
++-if(neon_version)
++-    set(CPU_HAS_NEON 1)
++-endif()
+++#if(neon_version)
+++set(CPU_HAS_NEON 0)
+++#endif()

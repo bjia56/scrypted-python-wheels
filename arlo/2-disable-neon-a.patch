@@ -1,0 +1,12 @@
+diff --git a/scripts/build-ffmpeg.py b/scripts/build-ffmpeg.py
+index 1788e6b..7af752a 100644
+--- a/scripts/build-ffmpeg.py
++++ b/scripts/build-ffmpeg.py
+@@ -185,6 +185,7 @@ if not os.path.exists(output_tarball):
+                 "-DENABLE_EXAMPLES=0",
+                 "-DENABLE_TESTS=0",
+                 "-DENABLE_TOOLS=0",
++                "-DENABLE_NEON=0",
+             ],
+             build_parallel=False,
+         ),

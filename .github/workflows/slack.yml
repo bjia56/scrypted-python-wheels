@@ -1,0 +1,48 @@
+name: Build @scrypted/slack dependencies
+
+on:
+  push:
+    branches: ["main"]
+    paths: ["slack/**"]
+  pull_request:
+    paths: ["slack/**"]
+  workflow_dispatch:
+
+jobs:
+  stage1:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Docker image (stage 1)
+        uses: docker/build-push-action@v3
+        with:
+          context: ./slack
+          file: ./slack/Dockerfile.stage1
+          push: false
+          platforms: linux/armhf
+          tags: stage1:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=min
+          load: true
+
+      - name: Extract output
+        run: |
+          docker run -v /tmp/output:/host stage1:latest bash -c "cp /export/* /host/"
+          tar -zcvf /tmp/output.tar.gz /tmp/output
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: output.tar.gz
+          path: /tmp/output.tar.gz
